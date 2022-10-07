@@ -64,9 +64,12 @@ def update_data():
     except Exception as error:
         print(error)
 
-    if not quotes or not colors:
-        raise RuntimeError("Please add at least one quote and color to your feeds")
-    matrixportal.set_text(" ", 1)
+    if not quotes:
+        raise RuntimeError("Please add at least one quote to your feeds")
+    matrixportal.set_text(" No Quotes! ", 1)
+    if not colors: 
+        raise RuntimeError("Please add at least one color to your feeds")
+    matrixportal.set_text(" No Colors! ", 1)
 
 
 update_data()
