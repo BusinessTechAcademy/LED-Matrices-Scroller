@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020 John Park for Adafruit Industries
+#
+# SPDX-License-Identifier: MIT
+
 import time # imported for feed selection & delays
 import random # imported for feed selection
 import board # imported for basic board functions
