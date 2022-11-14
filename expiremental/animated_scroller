@@ -1,0 +1,177 @@
+import time
+import random
+import board
+import terminalio
+import framebufferio
+import rgbmatrix
+import displayio
+from adafruit_matrixportal.matrixportal import MatrixPortal
+
+# adafruit_matrixportal.matrix(width=64, height=32)
+
+matrixportal = MatrixPortal(width=128, height=32, status_neopixel=board.NEOPIXEL, debug=True)
+# Create a new label with the color and text selected
+matrixportal.add_text(
+    text_font=terminalio.FONT,
+    text_position=(0, (matrixportal.graphics.display.height // 2) - 1),
+    scrolling=True,
+)
+# Static 'Connecting' Text
+matrixportal.add_text(
+    text_font=terminalio.FONT,
+    text_position=(2, (matrixportal.graphics.display.height // 2) - 1),
+)
+
+matrixportal.set_text("starting", 1)
+
+# FILENAME = ""
+# BIT_FEED = "sign-quotes.signbit"
+ANIM_FEED = "sign-quotes.signanim"
+QUOTES_FEED = "sign-quotes.signtext"
+COLORS_FEED = "sign-quotes.signcolor"
+SCROLL_DELAY = 20
+UPDATE_DELAY = 1000
+ANIM_STAGE = -1
+CYCLE = 0
+ANIM_INITL = 0
+
+# bmps = []
+quotes = []
+colors = []
+anims = []
+anim_state = None
+last_color = None
+last_quote = None
+
+
+def update_data():
+    print(time.monotonic())
+    print("Updating data from Adafruit IO")
+    matrixportal.set_text("Connecting", 1)
+
+    try:
+        quotes_data = matrixportal.get_io_data(QUOTES_FEED)
+        quotes.clear()
+        for json_data in quotes_data:
+            quotes.append(matrixportal.network.json_traverse(json_data, ["value"]))
+        print(quotes)
+    # pylint: disable=broad-except
+    except Exception as error:
+        print(error)
+    try:
+        color_data = matrixportal.get_io_data(COLORS_FEED)
+        colors.clear()
+        for json_data in color_data:
+            colors.append(matrixportal.network.json_traverse(json_data, ["value"]))
+        print(colors)
+    # pylint: disable=broad-except
+    except Exception as error:
+        print(error)
+    try:
+        anim_data = matrixportal.get_io_data(ANIM_FEED)
+        anims.clear()
+        for json_data in anim_data:
+            anims.append(matrixportal.network.json_traverse(json_data, ["value"]))
+        print(anims)
+    # pylint: disable=broad-except
+    except Exception as error:
+        print(error)
+    if not quotes or not colors:
+        raise RuntimeError("Please add at least one quote and color to your feeds")
+
+ANIM_INITL = time.monotonic() + 5.35
+print(ANIM_INITL)
+update_data()
+last_update = time.monotonic()
+matrixportal.set_text(" ", 1)
+quote_index = None
+color_index = None
+anim_index = None
+
+while True:
+    #     CYCLE = CYCLE + 0.01
+    #     print(CYLCE)
+    #    if CYCLE > 9:
+    #        UPDATE_DELAY = 800
+    #        bit_depth = 1
+    #        time.sleep(6)
+    #        UPDATE_DELAY = 600
+    #        bit_depth = 3
+    #        CYCLE = CYCLE - 10
+    #    else:
+    #        UPDATE_DELAY = UPDATE_DELAY
+    #    ANIM_STAGE = ANIM_STAGE + 1
+
+    # Choose a random quote from quotes
+    if len(quotes) > 1 and last_quote is not None:
+        while quote_index == last_quote:
+            quote_index = random.randrange(0, len(quotes))
+    else:
+        quote_index = random.randrange(0, len(quotes))
+    last_quote = quote_index
+
+    # Choose a random color from colors
+    if len(colors) > 1 and last_color is not None:
+        while color_index == last_color:
+            color_index = random.randrange(0, len(colors))
+    else:
+        color_index = random.randrange(0, len(colors))
+    last_color = color_index
+
+    anim_state = 4
+
+    print(ANIM_INITL)
+    print(CYCLE)
+
+    if anim_state == 1:
+        print("anim 1")
+        SCROLL_DELAY = 0.00
+        matrixportal.set_text(" " + quotes[quote_index])
+
+        matrixportal.set_text("|" + quotes[quote_index])
+
+        matrixportal.set_text(" " + quotes[quote_index])
+    if anim_state == 2:
+        print("anim 2")
+
+        if CYCLE > 1.98:
+            SCROLL_DELAY = 0.07
+            matrixportal.set_text(">" + quotes[quote_index])
+        else:
+            SCROLL_DELAY = 0.07
+            matrixportal.set_text("<" + quotes[quote_index])
+
+    if anim_state == 3:
+        print("anim 3")
+        SCROLL_DELAY = 0.00
+        quotes.replace('A', '4'), quotes.replace('a', '4')
+        quotes.replace('E', '3'), quotes.replace('e', '3')
+        quotes.replace('I', '1'), quotes.replace('i', '1')
+
+        matrixportal.set_text(quotes[quote_index])
+    if anim_state == 4:
+        print("anim 4")
+        if CYCLE > 0.01:
+            SCROLL_DELAY = 0.015
+            matrixportal.set_text("xxxxx")
+            CYCLE = CYCLE - 1
+        else:
+            SCROLL_DELAY = 0.015
+            matrixportal.set_text(quotes[quote_index])
+
+    # Set the text
+    # matrixportal.set_text(quotes[quote_index])
+
+    # Set the text color
+    matrixportal.set_text_color(colors[color_index])
+
+    # Scroll it
+    matrixportal.scroll_text(SCROLL_DELAY)
+    if time.monotonic() > ANIM_INITL:
+        CYCLE = CYCLE + 1
+        ANIM_INITL = ANIM_INITL + 9.98
+        print(CYCLE)
+    if time.monotonic() > last_update + UPDATE_DELAY:
+        update_data()
+        last_update = time.monotonic()
+
